@@ -1,158 +1,122 @@
-<script type="module">
+<!DOCTYPE html>
+<html lang="en">
 
-import {
-    initializeApp
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+<head>
 
-import {
-    getDatabase,
-    ref,
-    onValue
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+    <meta charset="UTF-8">
 
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-// =====================================================
-// FIREBASE CONFIGURATION
-// =====================================================
-
-const firebaseConfig = {
-
-    apiKey:
-        "AIzaSyAVX99fg5XZqS3VpS2h5HnmgvzGmwCmy0s",
-
-    authDomain:
-        "smart-food-spoilage-dete-cc79a.firebaseapp.com",
-
-    databaseURL:
-        "https://smart-food-spoilage-dete-cc79a-default-rtdb.asia-southeast1.firebasedatabase.app",
-
-    projectId:
-        "smart-food-spoilage-dete-cc79a",
-
-    storageBucket:
-        "smart-food-spoilage-dete-cc79a.firebasestorage.app",
-
-    messagingSenderId:
-        "517816349792",
-
-    appId:
-        "1:517816349792:web:5a3f94575b7ef910103f05"
-};
+    <title>Smart Food Spoilage Detection</title>
 
 
-// =====================================================
-// INITIALIZE FIREBASE
-// =====================================================
+    <!-- =====================================================
+         GOOGLE FONT
+    ====================================================== -->
 
-const app = initializeApp(firebaseConfig);
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
 
-const database = getDatabase(app);
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
 
-
-// =====================================================
-// CURRENT DATA
-// ESP32 writes here:
-// /smartFood/current/
-// =====================================================
-
-const currentRef =
-    ref(database, "smartFood/current");
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet">
 
 
-// =====================================================
-// FAULT LOG
-// ESP32 writes here:
-// /smartFood/faultLog/
-// =====================================================
+    <!-- =====================================================
+         FIREBASE + APPLICATION
+    ====================================================== -->
 
-const faultLogRef =
-    ref(database, "smartFood/faultLog");
+    <script type="module">
 
-
-// =====================================================
-// CURRENT DATA LISTENER
-// =====================================================
-
-onValue(
-    currentRef,
-    (snapshot) => {
-
-        const data = snapshot.val();
-
-        if (!data) {
-
-            console.log(
-                "No smartFood/current data"
-            );
-
-            return;
-        }
+        import {
+            initializeApp
+        } from
+        "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 
 
-        console.log(
-            "Firebase Data:",
-            data
-        );
+        import {
+            getDatabase,
+            ref,
+            onValue
+        } from
+        "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
 
-        // Gas value
+        /* =====================================================
+           FIREBASE CONFIGURATION
+        ====================================================== */
+
+        const firebaseConfig = {
+
+            apiKey:
+                "AIzaSyAVX99fg5XZqS3VpS2h5HnmgvzGmwCmy0s",
+
+            authDomain:
+                "smart-food-spoilage-dete-cc79a.firebaseapp.com",
+
+            databaseURL:
+                "https://smart-food-spoilage-dete-cc79a-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+            projectId:
+                "smart-food-spoilage-dete-cc79a",
+
+            storageBucket:
+                "smart-food-spoilage-dete-cc79a.firebasestorage.app",
+
+            messagingSenderId:
+                "517816349792",
+
+            appId:
+                "1:517816349792:web:5a3f94575b7ef910103f05"
+
+        };
+
+
+        /* =====================================================
+           INITIALIZE FIREBASE
+        ====================================================== */
+
+        const app =
+            initializeApp(firebaseConfig);
+
+        const database =
+            getDatabase(app);
+
+
+        /* =====================================================
+           VARIABLES
+        ====================================================== */
+
+        let gasHistory = [];
+
+        const MAX_POINTS = 30;
+
+
+        /* =====================================================
+           DOM ELEMENTS
+        ====================================================== */
 
         const gasValue =
-            Number(data.gasValue || 0);
-
-
-        // Food status
-
-        const foodStatus =
-            data.foodStatus || "FRESH";
-
-
-        // Alert
-
-        const alertStatus =
-            data.alert === true;
-
-
-        // ------------------------------------------------
-        // UPDATE WEB PAGE
-        // ------------------------------------------------
-
-        const gasElement =
             document.getElementById("gasValue");
 
-        const foodElement =
-            document.getElementById("foodStatus");
-
-        const alertElement =
-            document.getElementById("alertStatus");
-
-        const thresholdElement =
+        const threshold =
             document.getElementById("threshold");
 
+        const foodStatus =
+            document.getElementById("foodStatus");
 
-        if (gasElement)
-            gasElement.textContent =
-                gasValue;
+        const alertStatus =
+            document.getElementById("alertStatus");
 
+        const deviceName =
+            document.getElementById("deviceName");
 
-        if (foodElement)
-            foodElement.textContent =
-                foodStatus;
-
-
-        if (alertElement)
-            alertElement.textContent =
-                alertStatus ? "ON" : "OFF";
-
-
-        if (thresholdElement)
-            thresholdElement.textContent =
-                data.threshold || 1800;
-
-
-        // ------------------------------------------------
-        // STATUS BOX
-        // ------------------------------------------------
+        const alertBanner =
+            document.getElementById("alertBanner");
 
         const statusBox =
             document.getElementById("statusBox");
@@ -163,252 +127,3098 @@ onValue(
         const statusTitle =
             document.getElementById("statusTitle");
 
-        const statusText =
-            document.getElementById("statusText");
+        const statusDescription =
+            document.getElementById("statusDescription");
 
-        const alertBanner =
-            document.getElementById("alertBanner");
+        const gasProgress =
+            document.getElementById("gasProgress");
 
+        const firebaseStatus =
+            document.getElementById("firebaseStatus");
 
-        if (
-            alertStatus ||
-            foodStatus === "SPOILED"
-        ) {
+        const connectionDot =
+            document.getElementById("connectionDot");
 
-            if (statusBox)
-                statusBox.classList.add(
-                    "danger-box"
-                );
+        const faultLog =
+            document.getElementById("faultLog");
 
+        const eventCount =
+            document.getElementById("eventCount");
 
-            if (statusIcon)
-                statusIcon.textContent =
-                    "⚠️";
-
-
-            if (statusTitle)
-                statusTitle.textContent =
-                    "FOOD SPOILAGE DETECTED";
+        const lastUpdate =
+            document.getElementById("lastUpdate");
 
 
-            if (statusText)
-                statusText.textContent =
-                    "Abnormal gas level detected. Check the food immediately.";
+        /* =====================================================
+           CANVAS
+        ====================================================== */
+
+        const canvas =
+            document.getElementById("gasChart");
+
+        const ctx =
+            canvas.getContext("2d");
 
 
-            if (alertBanner)
-                alertBanner.style.display =
-                    "block";
+        /* =====================================================
+           CANVAS RESIZE
+        ====================================================== */
 
-        }
-        else {
+        function resizeCanvas() {
 
-            if (statusBox)
-                statusBox.classList.remove(
-                    "danger-box"
-                );
+            const rect =
+                canvas.getBoundingClientRect();
 
+            const ratio =
+                window.devicePixelRatio || 1;
 
-            if (statusIcon)
-                statusIcon.textContent =
-                    "✓";
+            canvas.width =
+                rect.width * ratio;
 
+            canvas.height =
+                rect.height * ratio;
 
-            if (statusTitle)
-                statusTitle.textContent =
-                    "FOOD IS FRESH";
-
-
-            if (statusText)
-                statusText.textContent =
-                    "No abnormal gas level detected.";
-
-
-            if (alertBanner)
-                alertBanner.style.display =
-                    "none";
-
-        }
-
-
-        // ------------------------------------------------
-        // CONNECTION STATUS
-        // ------------------------------------------------
-
-        const connectionStatus =
-            document.getElementById(
-                "connectionStatus"
+            ctx.setTransform(
+                ratio,
+                0,
+                0,
+                ratio,
+                0,
+                0
             );
 
-
-        if (connectionStatus) {
-
-            connectionStatus.textContent =
-                "● Firebase Connected";
-
-            connectionStatus.className =
-                "online";
+            drawChart();
 
         }
 
-    },
 
-
-    (error) => {
-
-        console.error(
-            "Firebase error:",
-            error
+        window.addEventListener(
+            "resize",
+            resizeCanvas
         );
 
 
-        const connectionStatus =
-            document.getElementById(
-                "connectionStatus"
+        /* =====================================================
+           DRAW GRAPH
+        ====================================================== */
+
+        function drawChart() {
+
+            const width =
+                canvas.clientWidth;
+
+            const height =
+                canvas.clientHeight;
+
+
+            ctx.clearRect(
+                0,
+                0,
+                width,
+                height
             );
 
 
-        if (connectionStatus) {
+            /* -----------------------------
+               BACKGROUND GRID
+            ----------------------------- */
 
-            connectionStatus.textContent =
-                "● Firebase Error";
+            ctx.strokeStyle =
+                "#e8edf3";
 
-            connectionStatus.className =
-                "offline";
-
-        }
-
-    }
-);
+            ctx.lineWidth = 1;
 
 
-// =====================================================
-// FAULT LOG LISTENER
-// =====================================================
+            for (
+                let i = 0;
+                i <= 5;
+                i++
+            ) {
 
-onValue(
-    faultLogRef,
-    (snapshot) => {
+                const y =
+                    (height / 5) * i;
 
-        const logs =
-            snapshot.val();
+                ctx.beginPath();
 
+                ctx.moveTo(
+                    0,
+                    y
+                );
 
-        const faultTable =
-            document.getElementById(
-                "faultTable"
-            );
+                ctx.lineTo(
+                    width,
+                    y
+                );
 
+                ctx.stroke();
 
-        if (!faultTable)
-            return;
-
-
-        faultTable.innerHTML = "";
-
-
-        if (!logs) {
-
-            faultTable.innerHTML = `
-                <tr>
-                    <td colspan="5"
-                        style="text-align:center">
-                        No fault events recorded
-                    </td>
-                </tr>
-            `;
-
-            return;
-        }
+            }
 
 
-        // Convert Firebase object to array
+            /* -----------------------------
+               Y AXIS LABELS
+            ----------------------------- */
 
-        const entries =
-            Object.entries(logs);
+            ctx.fillStyle =
+                "#94a0b1";
 
+            ctx.font =
+                "10px Inter";
 
-        // Latest event first
-
-        entries.reverse();
-
-
-        entries.forEach(
-            ([key, log]) => {
-
-                const row =
-                    document.createElement("tr");
+            ctx.textAlign =
+                "left";
 
 
-                const isFault =
-                    log.faultType ===
-                    "FOOD_SPOILAGE_DETECTED";
+            const maxValue =
+                4095;
 
 
-                const faultText =
-                    isFault
-                    ? "SPOILAGE DETECTED"
-                    : "STATUS RECOVERED";
+            for (
+                let i = 0;
+                i <= 4;
+                i++
+            ) {
 
+                const value =
+                    Math.round(
+                        maxValue -
+                        (maxValue / 4) * i
+                    );
 
-                const faultClass =
-                    isFault
-                    ? "fault"
-                    : "recovered";
+                const y =
+                    (height / 4) * i;
 
-
-                const alertText =
-                    log.alert
-                    ? "ON"
-                    : "OFF";
-
-
-                row.innerHTML = `
-
-                    <td>
-                        ${new Date()
-                            .toLocaleString()}
-                    </td>
-
-                    <td>
-                        <strong>
-                            ${log.gasValue ?? "--"}
-                        </strong>
-                    </td>
-
-                    <td class="${faultClass}">
-                        ${faultText}
-                    </td>
-
-                    <td>
-                        ${log.foodStatus ?? "--"}
-                    </td>
-
-                    <td>
-                        ${alertText}
-                    </td>
-
-                `;
-
-
-                faultTable.appendChild(
-                    row
+                ctx.fillText(
+                    value,
+                    8,
+                    y + 12
                 );
 
             }
+
+
+            /* -----------------------------
+               NO DATA
+            ----------------------------- */
+
+            if (
+                gasHistory.length < 2
+            ) {
+
+                ctx.fillStyle =
+                    "#98a2b3";
+
+                ctx.font =
+                    "12px Inter";
+
+                ctx.textAlign =
+                    "center";
+
+                ctx.fillText(
+                    "Waiting for sensor data...",
+                    width / 2,
+                    height / 2
+                );
+
+                return;
+
+            }
+
+
+            /* -----------------------------
+               GRAPH
+            ----------------------------- */
+
+            const step =
+                width /
+                Math.max(
+                    MAX_POINTS - 1,
+                    1
+                );
+
+
+            ctx.beginPath();
+
+
+            gasHistory.forEach(
+                (value, index) => {
+
+                    const x =
+                        index * step;
+
+                    const y =
+                        height -
+                        (
+                            value /
+                            maxValue
+                        ) * height;
+
+
+                    if (index === 0) {
+
+                        ctx.moveTo(
+                            x,
+                            y
+                        );
+
+                    }
+
+                    else {
+
+                        ctx.lineTo(
+                            x,
+                            y
+                        );
+
+                    }
+
+                }
+            );
+
+
+            ctx.strokeStyle =
+                "#111827";
+
+            ctx.lineWidth = 3;
+
+            ctx.lineJoin =
+                "round";
+
+            ctx.lineCap =
+                "round";
+
+            ctx.stroke();
+
+
+            /* -----------------------------
+               AREA
+            ----------------------------- */
+
+            const lastIndex =
+                gasHistory.length - 1;
+
+            const lastX =
+                lastIndex * step;
+
+            const lastY =
+                height -
+                (
+                    gasHistory[lastIndex] /
+                    maxValue
+                ) * height;
+
+
+            ctx.lineTo(
+                lastX,
+                height
+            );
+
+            ctx.lineTo(
+                0,
+                height
+            );
+
+            ctx.closePath();
+
+            ctx.fillStyle =
+                "rgba(17,24,39,0.05)";
+
+            ctx.fill();
+
+
+            /* -----------------------------
+               CURRENT POINT
+            ----------------------------- */
+
+            ctx.beginPath();
+
+            ctx.arc(
+                lastX,
+                lastY,
+                5,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.fillStyle =
+                "#111827";
+
+            ctx.fill();
+
+
+            ctx.beginPath();
+
+            ctx.arc(
+                lastX,
+                lastY,
+                9,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.strokeStyle =
+                "rgba(17,24,39,0.15)";
+
+            ctx.lineWidth = 2;
+
+            ctx.stroke();
+
+        }
+
+
+        /* =====================================================
+           CURRENT DATA
+        ====================================================== */
+
+        const currentReference =
+            ref(
+                database,
+                "smartFood/current"
+            );
+
+
+        onValue(
+
+            currentReference,
+
+            (snapshot) => {
+
+                const data =
+                    snapshot.val();
+
+
+                if (!data) {
+
+                    firebaseStatus.textContent =
+                        "No Device Data";
+
+                    return;
+
+                }
+
+
+                /* -----------------------------
+                   GET VALUES
+                ----------------------------- */
+
+                const gas =
+                    Number(
+                        data.gasValue || 0
+                    );
+
+
+                const limit =
+                    Number(
+                        data.threshold || 1800
+                    );
+
+
+                const status =
+                    String(
+                        data.foodStatus ||
+                        "UNKNOWN"
+                    );
+
+
+                const alert =
+                    data.alert === true ||
+                    data.alert === "true";
+
+
+                const device =
+                    data.device ||
+                    "ESP32-DEV";
+
+
+                /* -----------------------------
+                   GAS VALUE
+                ----------------------------- */
+
+                gasValue.textContent =
+                    gas;
+
+
+                /* -----------------------------
+                   THRESHOLD
+                ----------------------------- */
+
+                threshold.textContent =
+                    limit;
+
+
+                /* -----------------------------
+                   DEVICE
+                ----------------------------- */
+
+                deviceName.textContent =
+                    device;
+
+
+                /* -----------------------------
+                   FOOD STATUS
+                ----------------------------- */
+
+                foodStatus.textContent =
+                    status;
+
+
+                foodStatus.className =
+                    alert
+                        ? "big-status spoiled"
+                        : "big-status fresh";
+
+
+                /* -----------------------------
+                   ALERT
+                ----------------------------- */
+
+                if (alert) {
+
+                    alertStatus.textContent =
+                        "ALERT";
+
+                    alertStatus.className =
+                        "big-status danger";
+
+
+                    alertBanner.classList.remove(
+                        "hidden"
+                    );
+
+
+                    statusBox.className =
+                        "status-box spoiled-box";
+
+
+                    statusIcon.textContent =
+                        "!";
+
+
+                    statusTitle.textContent =
+                        "Spoilage Detected";
+
+
+                    statusDescription.textContent =
+                        "Gas concentration has exceeded the configured spoilage threshold.";
+
+                }
+
+                else {
+
+                    alertStatus.textContent =
+                        "NORMAL";
+
+                    alertStatus.className =
+                        "big-status normal";
+
+
+                    alertBanner.classList.add(
+                        "hidden"
+                    );
+
+
+                    statusBox.className =
+                        "status-box fresh-box";
+
+
+                    statusIcon.textContent =
+                        "✓";
+
+
+                    statusTitle.textContent =
+                        "Food Condition Normal";
+
+
+                    statusDescription.textContent =
+                        "No spoilage condition detected. Food condition is within the configured limit.";
+
+                }
+
+
+                /* -----------------------------
+                   GAS PROGRESS
+                ----------------------------- */
+
+                let percentage =
+                    (
+                        gas /
+                        4095
+                    ) * 100;
+
+
+                percentage =
+                    Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            percentage
+                        )
+                    );
+
+
+                gasProgress.style.width =
+                    percentage + "%";
+
+
+                if (alert) {
+
+                    gasProgress.className =
+                        "progress-bar danger-progress";
+
+                }
+
+                else {
+
+                    gasProgress.className =
+                        "progress-bar";
+
+                }
+
+
+                /* -----------------------------
+                   GRAPH DATA
+                ----------------------------- */
+
+                gasHistory.push(
+                    gas
+                );
+
+
+                if (
+                    gasHistory.length >
+                    MAX_POINTS
+                ) {
+
+                    gasHistory.shift();
+
+                }
+
+
+                drawChart();
+
+
+                /* -----------------------------
+                   LAST UPDATE
+                ----------------------------- */
+
+                lastUpdate.textContent =
+                    new Date()
+                        .toLocaleTimeString(
+                            "en-IN"
+                        );
+
+
+                /* -----------------------------
+                   CONNECTION
+                ----------------------------- */
+
+                firebaseStatus.textContent =
+                    "Connected";
+
+                connectionDot.className =
+                    "connection-dot online";
+
+            },
+
+
+            (error) => {
+
+                console.error(
+                    "Firebase Error:",
+                    error
+                );
+
+
+                firebaseStatus.textContent =
+                    "Connection Error";
+
+
+                connectionDot.className =
+                    "connection-dot offline";
+
+            }
+
         );
 
-    },
+
+        /* =====================================================
+           FAULT LOG
+        ====================================================== */
+
+        const faultReference =
+            ref(
+                database,
+                "smartFood/faultLog"
+            );
 
 
-    (error) => {
+        onValue(
 
-        console.error(
-            "Fault log error:",
-            error
+            faultReference,
+
+            (snapshot) => {
+
+                const data =
+                    snapshot.val();
+
+
+                faultLog.innerHTML =
+                    "";
+
+
+                if (!data) {
+
+                    faultLog.innerHTML = `
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="empty"
+                            >
+                                No fault events recorded
+                            </td>
+
+                        </tr>
+
+                    `;
+
+
+                    eventCount.textContent =
+                        "0";
+
+                    return;
+
+                }
+
+
+                const logs =
+                    Object.entries(
+                        data
+                    );
+
+
+                logs.reverse();
+
+
+                eventCount.textContent =
+                    logs.length;
+
+
+                logs.forEach(
+                    ([key, log]) => {
+
+                        const row =
+                            document.createElement(
+                                "tr"
+                            );
+
+
+                        const event =
+                            log.faultType ||
+                            "EVENT";
+
+
+                        const gas =
+                            log.gasValue ??
+                            "--";
+
+
+                        const status =
+                            log.foodStatus ||
+                            "--";
+
+
+                        const alert =
+                            log.alert === true ||
+                            log.alert === "true";
+
+
+                        const device =
+                            log.device ||
+                            "ESP32";
+
+
+                        const time =
+                            formatTimestamp(
+                                log.timestamp
+                            );
+
+
+                        const eventClass =
+                            alert
+                                ? "event-danger"
+                                : "event-normal";
+
+
+                        const badgeClass =
+                            alert
+                                ? "badge-red"
+                                : "badge-green";
+
+
+                        row.innerHTML = `
+
+                            <td
+                                class="${eventClass}"
+                            >
+                                ${event}
+                            </td>
+
+                            <td>
+                                ${gas}
+                            </td>
+
+                            <td>
+                                ${status}
+                            </td>
+
+                            <td>
+
+                                <span
+                                    class="badge ${badgeClass}"
+                                >
+
+                                    ${
+                                        alert
+                                        ? "ALERT"
+                                        : "NORMAL"
+                                    }
+
+                                </span>
+
+                            </td>
+
+                            <td>
+                                ${device}
+                            </td>
+
+                            <td>
+                                ${time}
+                            </td>
+
+                        `;
+
+
+                        faultLog.appendChild(
+                            row
+                        );
+
+                    }
+                );
+
+            },
+
+
+            (error) => {
+
+                console.error(
+                    "Fault Log Error:",
+                    error
+                );
+
+            }
+
         );
 
-    }
-);
 
-</script>
+        /* =====================================================
+           TIMESTAMP
+        ====================================================== */
+
+        function formatTimestamp(
+            timestamp
+        ) {
+
+            if (!timestamp) {
+
+                return "--";
+
+            }
+
+
+            /*
+             * Current ESP32 code stores
+             * millis() as timestamp.
+             */
+
+            return "Uptime " +
+                timestamp +
+                " ms";
+
+        }
+
+
+        /* =====================================================
+           INITIALIZE GRAPH
+        ====================================================== */
+
+        setTimeout(
+            resizeCanvas,
+            300
+        );
+
+    </script>
+
+
+    <!-- =====================================================
+         CSS
+    ====================================================== -->
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+
+        body {
+
+            font-family:
+                'Inter',
+                sans-serif;
+
+            background:
+                #f5f7fb;
+
+            color:
+                #18212f;
+
+        }
+
+
+        /* =====================================================
+           SIDEBAR
+        ====================================================== */
+
+        .sidebar {
+
+            position: fixed;
+
+            left: 0;
+            top: 0;
+
+            width: 245px;
+            height: 100vh;
+
+            background:
+                #101827;
+
+            padding:
+                28px 18px;
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            z-index: 100;
+
+        }
+
+
+        .logo {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap: 12px;
+
+            padding:
+                8px 10px 35px;
+
+        }
+
+
+        .logo-icon {
+
+            width: 42px;
+            height: 42px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            border-radius:
+                12px;
+
+            background:
+                #ffffff;
+
+            font-size:
+                22px;
+
+        }
+
+
+        .logo h2 {
+
+            color:
+                white;
+
+            font-size:
+                17px;
+
+        }
+
+
+        .logo span {
+
+            color:
+                #8e9aae;
+
+            font-size:
+                10px;
+
+        }
+
+
+        nav {
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            gap:
+                7px;
+
+        }
+
+
+        nav a {
+
+            text-decoration:
+                none;
+
+            color:
+                #9ba7b8;
+
+            padding:
+                13px 15px;
+
+            border-radius:
+                10px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                12px;
+
+            font-size:
+                13px;
+
+            font-weight:
+                600;
+
+            transition:
+                0.2s;
+
+        }
+
+
+        nav a:hover,
+        nav a.active {
+
+            background:
+                #1d293b;
+
+            color:
+                white;
+
+        }
+
+
+        nav a span {
+
+            width:
+                20px;
+
+            text-align:
+                center;
+
+        }
+
+
+        .sidebar-bottom {
+
+            margin-top:
+                auto;
+
+        }
+
+
+        .connection {
+
+            border-top:
+                1px solid #263244;
+
+            padding:
+                20px 10px 5px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                10px;
+
+        }
+
+
+        .connection-dot {
+
+            width:
+                9px;
+
+            height:
+                9px;
+
+            border-radius:
+                50%;
+
+            background:
+                #f59e0b;
+
+        }
+
+
+        .connection-dot.online {
+
+            background:
+                #22c55e;
+
+            box-shadow:
+                0 0 10px #22c55e;
+
+        }
+
+
+        .connection-dot.offline {
+
+            background:
+                #ef4444;
+
+            box-shadow:
+                0 0 10px #ef4444;
+
+        }
+
+
+        .connection strong {
+
+            display:
+                block;
+
+            color:
+                #e7ebf0;
+
+            font-size:
+                12px;
+
+        }
+
+
+        .connection small {
+
+            color:
+                #778398;
+
+            font-size:
+                10px;
+
+        }
+
+
+        /* =====================================================
+           MAIN
+        ====================================================== */
+
+        .main {
+
+            margin-left:
+                245px;
+
+            padding:
+                35px 42px;
+
+            max-width:
+                1600px;
+
+        }
+
+
+        /* =====================================================
+           HEADER
+        ====================================================== */
+
+        .topbar {
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            margin-bottom:
+                30px;
+
+        }
+
+
+        .eyebrow,
+        .panel-label {
+
+            color:
+                #758197;
+
+            font-size:
+                10px;
+
+            font-weight:
+                800;
+
+            letter-spacing:
+                1.5px;
+
+            margin-bottom:
+                7px;
+
+        }
+
+
+        .topbar h1 {
+
+            font-size:
+                29px;
+
+            font-weight:
+                800;
+
+            letter-spacing:
+                -1px;
+
+        }
+
+
+        .subtitle {
+
+            color:
+                #758197;
+
+            margin-top:
+                7px;
+
+            font-size:
+                13px;
+
+        }
+
+
+        .device-status {
+
+            background:
+                white;
+
+            border:
+                1px solid #e4e8ef;
+
+            padding:
+                10px 15px;
+
+            border-radius:
+                30px;
+
+            font-size:
+                12px;
+
+            font-weight:
+                600;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                9px;
+
+        }
+
+
+        .status-dot {
+
+            width:
+                8px;
+
+            height:
+                8px;
+
+            border-radius:
+                50%;
+
+            background:
+                #22c55e;
+
+        }
+
+
+        /* =====================================================
+           ALERT
+        ====================================================== */
+
+        .alert-banner {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                14px;
+
+            padding:
+                15px 18px;
+
+            border-radius:
+                12px;
+
+            margin-bottom:
+                20px;
+
+            background:
+                #fff1f2;
+
+            border:
+                1px solid #fecdd3;
+
+        }
+
+
+        .alert-banner.hidden {
+
+            display:
+                none;
+
+        }
+
+
+        .alert-icon {
+
+            width:
+                36px;
+
+            height:
+                36px;
+
+            border-radius:
+                50%;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            background:
+                #ef4444;
+
+            color:
+                white;
+
+            font-weight:
+                800;
+
+        }
+
+
+        .alert-banner strong {
+
+            color:
+                #be123c;
+
+            font-size:
+                14px;
+
+        }
+
+
+        .alert-banner p {
+
+            color:
+                #9f1239;
+
+            font-size:
+                12px;
+
+            margin-top:
+                3px;
+
+        }
+
+
+        /* =====================================================
+           DASHBOARD
+        ====================================================== */
+
+        .dashboard-grid {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap:
+                18px;
+
+            margin-bottom:
+                20px;
+
+        }
+
+
+        .metric-card {
+
+            background:
+                white;
+
+            border:
+                1px solid #e5e9f0;
+
+            border-radius:
+                15px;
+
+            padding:
+                22px;
+
+            min-height:
+                175px;
+
+            box-shadow:
+                0 4px 15px rgba(
+                    15,
+                    23,
+                    42,
+                    0.03
+                );
+
+        }
+
+
+        .card-header {
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            color:
+                #788499;
+
+            font-size:
+                10px;
+
+            font-weight:
+                800;
+
+            letter-spacing:
+                1px;
+
+        }
+
+
+        .icon-box {
+
+            width:
+                34px;
+
+            height:
+                34px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            background:
+                #f2f5f9;
+
+            border-radius:
+                9px;
+
+            font-size:
+                15px;
+
+        }
+
+
+        .metric-value {
+
+            margin-top:
+                23px;
+
+            font-size:
+                38px;
+
+            font-weight:
+                800;
+
+            letter-spacing:
+                -2px;
+
+        }
+
+
+        .metric-label {
+
+            color:
+                #8994a5;
+
+            font-size:
+                11px;
+
+            margin-top:
+                5px;
+
+        }
+
+
+        /* =====================================================
+           PROGRESS
+        ====================================================== */
+
+        .progress {
+
+            height:
+                7px;
+
+            background:
+                #edf0f4;
+
+            border-radius:
+                20px;
+
+            margin-top:
+                18px;
+
+            overflow:
+                hidden;
+
+        }
+
+
+        .progress-bar {
+
+            height:
+                100%;
+
+            width:
+                0%;
+
+            border-radius:
+                20px;
+
+            background:
+                #111827;
+
+            transition:
+                width 0.4s;
+
+        }
+
+
+        .danger-progress {
+
+            background:
+                #ef4444;
+
+        }
+
+
+        /* =====================================================
+           STATUS
+        ====================================================== */
+
+        .big-status {
+
+            display:
+                inline-block;
+
+            margin-top:
+                26px;
+
+            padding:
+                9px 14px;
+
+            border-radius:
+                8px;
+
+            font-size:
+                20px;
+
+            font-weight:
+                800;
+
+        }
+
+
+        .big-status.fresh {
+
+            background:
+                #ecfdf5;
+
+            color:
+                #047857;
+
+        }
+
+
+        .big-status.spoiled {
+
+            background:
+                #fff1f2;
+
+            color:
+                #be123c;
+
+        }
+
+
+        .big-status.normal {
+
+            background:
+                #ecfdf5;
+
+            color:
+                #047857;
+
+        }
+
+
+        .big-status.danger {
+
+            background:
+                #fff1f2;
+
+            color:
+                #be123c;
+
+        }
+
+
+        /* =====================================================
+           CONTENT
+        ====================================================== */
+
+        .content-grid {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                2fr 1fr;
+
+            gap:
+                20px;
+
+            margin-bottom:
+                20px;
+
+        }
+
+
+        .panel {
+
+            background:
+                white;
+
+            border:
+                1px solid #e5e9f0;
+
+            border-radius:
+                15px;
+
+            padding:
+                24px;
+
+            box-shadow:
+                0 4px 15px rgba(
+                    15,
+                    23,
+                    42,
+                    0.03
+                );
+
+        }
+
+
+        .panel-header {
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            margin-bottom:
+                18px;
+
+        }
+
+
+        .panel-header h2 {
+
+            font-size:
+                17px;
+
+        }
+
+
+        .live-badge {
+
+            background:
+                #f0fdf4;
+
+            color:
+                #15803d;
+
+            border-radius:
+                20px;
+
+            padding:
+                7px 10px;
+
+            font-size:
+                9px;
+
+            font-weight:
+                800;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                6px;
+
+        }
+
+
+        .live-badge span {
+
+            width:
+                6px;
+
+            height:
+                6px;
+
+            border-radius:
+                50%;
+
+            background:
+                #22c55e;
+
+        }
+
+
+        #gasChart {
+
+            width:
+                100%;
+
+            height:
+                300px;
+
+            display:
+                block;
+
+        }
+
+
+        /* =====================================================
+           STATUS PANEL
+        ====================================================== */
+
+        .status-box {
+
+            padding:
+                20px;
+
+            border-radius:
+                12px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                15px;
+
+            margin-bottom:
+                18px;
+
+        }
+
+
+        .fresh-box {
+
+            background:
+                #f0fdf4;
+
+        }
+
+
+        .spoiled-box {
+
+            background:
+                #fff1f2;
+
+        }
+
+
+        .status-large-icon {
+
+            width:
+                45px;
+
+            height:
+                45px;
+
+            border-radius:
+                50%;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            background:
+                white;
+
+            font-size:
+                20px;
+
+            font-weight:
+                800;
+
+        }
+
+
+        .status-box strong {
+
+            font-size:
+                13px;
+
+        }
+
+
+        .status-box p {
+
+            margin-top:
+                5px;
+
+            color:
+                #697586;
+
+            font-size:
+                11px;
+
+        }
+
+
+        .status-details {
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            gap:
+                13px;
+
+        }
+
+
+        .status-details div {
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            border-bottom:
+                1px solid #edf0f4;
+
+            padding-bottom:
+                10px;
+
+        }
+
+
+        .status-details span {
+
+            color:
+                #8a95a5;
+
+            font-size:
+                11px;
+
+        }
+
+
+        .status-details strong {
+
+            font-size:
+                11px;
+
+        }
+
+
+        /* =====================================================
+           EVENTS
+        ====================================================== */
+
+        .events-panel {
+
+            margin-bottom:
+                20px;
+
+        }
+
+
+        .event-count {
+
+            background:
+                #f4f6f9;
+
+            padding:
+                7px 12px;
+
+            border-radius:
+                20px;
+
+            color:
+                #667085;
+
+            font-size:
+                11px;
+
+        }
+
+
+        .table-container {
+
+            overflow-x:
+                auto;
+
+        }
+
+
+        table {
+
+            width:
+                100%;
+
+            border-collapse:
+                collapse;
+
+            min-width:
+                700px;
+
+        }
+
+
+        th {
+
+            text-align:
+                left;
+
+            background:
+                #f8fafc;
+
+            color:
+                #7a8698;
+
+            font-size:
+                9px;
+
+            letter-spacing:
+                1px;
+
+            padding:
+                12px;
+
+        }
+
+
+        td {
+
+            padding:
+                14px 12px;
+
+            border-bottom:
+                1px solid #edf0f4;
+
+            font-size:
+                11px;
+
+            color:
+                #475467;
+
+        }
+
+
+        .event-danger {
+
+            color:
+                #dc2626;
+
+            font-weight:
+                700;
+
+        }
+
+
+        .event-normal {
+
+            color:
+                #059669;
+
+            font-weight:
+                700;
+
+        }
+
+
+        .badge {
+
+            display:
+                inline-block;
+
+            padding:
+                5px 8px;
+
+            border-radius:
+                5px;
+
+            font-size:
+                9px;
+
+            font-weight:
+                700;
+
+        }
+
+
+        .badge-red {
+
+            background:
+                #fee2e2;
+
+            color:
+                #b91c1c;
+
+        }
+
+
+        .badge-green {
+
+            background:
+                #dcfce7;
+
+            color:
+                #15803d;
+
+        }
+
+
+        .empty {
+
+            text-align:
+                center;
+
+            padding:
+                30px;
+
+            color:
+                #98a2b3;
+
+        }
+
+
+        /* =====================================================
+           SYSTEM
+        ====================================================== */
+
+        .system-panel {
+
+            margin-bottom:
+                25px;
+
+        }
+
+
+        .hardware-grid {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap:
+                12px;
+
+        }
+
+
+        .hardware-item {
+
+            padding:
+                15px;
+
+            background:
+                #f8fafc;
+
+            border-radius:
+                9px;
+
+        }
+
+
+        .hardware-item span {
+
+            display:
+                block;
+
+            color:
+                #8792a3;
+
+            font-size:
+                10px;
+
+            margin-bottom:
+                5px;
+
+        }
+
+
+        .hardware-item strong {
+
+            font-size:
+                12px;
+
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ====================================================== */
+
+        footer {
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            color:
+                #8994a5;
+
+            font-size:
+                10px;
+
+            padding:
+                10px 2px 20px;
+
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ====================================================== */
+
+        @media(max-width:1100px) {
+
+            .dashboard-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+
+            .content-grid {
+
+                grid-template-columns:
+                    1fr;
+
+            }
+
+
+            .hardware-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+        }
+
+
+        @media(max-width:750px) {
+
+            .sidebar {
+
+                position:
+                    relative;
+
+                width:
+                    100%;
+
+                height:
+                    auto;
+
+                padding:
+                    15px;
+
+            }
+
+
+            .logo {
+
+                padding-bottom:
+                    15px;
+
+            }
+
+
+            nav {
+
+                flex-direction:
+                    row;
+
+                overflow-x:
+                    auto;
+
+            }
+
+
+            nav a {
+
+                white-space:
+                    nowrap;
+
+            }
+
+
+            .sidebar-bottom {
+
+                display:
+                    none;
+
+            }
+
+
+            .main {
+
+                margin-left:
+                    0;
+
+                padding:
+                    25px 15px;
+
+            }
+
+
+            .topbar {
+
+                flex-direction:
+                    column;
+
+                align-items:
+                    flex-start;
+
+                gap:
+                    15px;
+
+            }
+
+
+            .topbar h1 {
+
+                font-size:
+                    23px;
+
+            }
+
+
+            .dashboard-grid {
+
+                grid-template-columns:
+                    1fr;
+
+            }
+
+
+            .hardware-grid {
+
+                grid-template-columns:
+                    1fr;
+
+            }
+
+
+            footer {
+
+                flex-direction:
+                    column;
+
+                gap:
+                    8px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                🍱
+            </div>
+
+            <div>
+
+                <h2>
+                    FoodGuard
+                </h2>
+
+                <span>
+                    Smart Monitoring
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <nav>
+
+            <a
+                href="#dashboard"
+                class="active"
+            >
+
+                <span>▦</span>
+
+                Dashboard
+
+            </a>
+
+
+            <a
+                href="#monitoring"
+            >
+
+                <span>◉</span>
+
+                Monitoring
+
+            </a>
+
+
+            <a
+                href="#events"
+            >
+
+                <span>⚠</span>
+
+                Fault Logs
+
+            </a>
+
+
+            <a
+                href="#system"
+            >
+
+                <span>⚙</span>
+
+                System
+
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+            <div class="connection">
+
+                <span
+                    id="connectionDot"
+                    class="connection-dot"
+                ></span>
+
+                <div>
+
+                    <strong
+                        id="firebaseStatus"
+                    >
+                        Connecting...
+                    </strong>
+
+                    <small>
+                        Firebase RTDB
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="main">
+
+
+        <!-- HEADER -->
+
+        <header class="topbar">
+
+            <div>
+
+                <p class="eyebrow">
+                    ESP32 IoT SYSTEM
+                </p>
+
+                <h1>
+                    Smart Food Spoilage Detection
+                </h1>
+
+                <p class="subtitle">
+                    Real-time food condition monitoring using MQ gas sensing
+                </p>
+
+            </div>
+
+
+            <div class="device-status">
+
+                <span class="status-dot"></span>
+
+                <span>
+                    ESP32 Online
+                </span>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =================================================
+             ALERT BANNER
+        ================================================== -->
+
+        <section
+            id="alertBanner"
+            class="alert-banner hidden"
+        >
+
+            <div class="alert-icon">
+                !
+            </div>
+
+            <div>
+
+                <strong>
+                    Food Spoilage Detected
+                </strong>
+
+                <p>
+                    Gas concentration has exceeded the configured threshold.
+                </p>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             DASHBOARD CARDS
+        ================================================== -->
+
+        <section
+            id="dashboard"
+            class="dashboard-grid"
+        >
+
+
+            <!-- GAS -->
+
+            <div class="metric-card">
+
+                <div class="card-header">
+
+                    <span>
+                        MQ GAS LEVEL
+                    </span>
+
+                    <div class="icon-box">
+                        ◉
+                    </div>
+
+                </div>
+
+
+                <div class="metric-value">
+
+                    <span id="gasValue">
+                        --
+                    </span>
+
+                </div>
+
+
+                <div class="metric-label">
+                    Raw ADC Value
+                </div>
+
+
+                <div class="progress">
+
+                    <div
+                        id="gasProgress"
+                        class="progress-bar"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- FOOD STATUS -->
+
+            <div class="metric-card">
+
+                <div class="card-header">
+
+                    <span>
+                        FOOD STATUS
+                    </span>
+
+                    <div class="icon-box">
+                        🍱
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="foodStatus"
+                    class="big-status fresh"
+                >
+                    WAITING
+                </div>
+
+
+                <div class="metric-label">
+                    Current condition
+                </div>
+
+            </div>
+
+
+
+            <!-- ALERT STATUS -->
+
+            <div class="metric-card">
+
+                <div class="card-header">
+
+                    <span>
+                        ALERT STATUS
+                    </span>
+
+                    <div class="icon-box">
+                        🔔
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="alertStatus"
+                    class="big-status normal"
+                >
+                    NORMAL
+                </div>
+
+
+                <div class="metric-label">
+                    Buzzer / warning state
+                </div>
+
+            </div>
+
+
+
+            <!-- THRESHOLD -->
+
+            <div class="metric-card">
+
+                <div class="card-header">
+
+                    <span>
+                        THRESHOLD
+                    </span>
+
+                    <div class="icon-box">
+                        ⌁
+                    </div>
+
+                </div>
+
+
+                <div class="metric-value">
+
+                    <span id="threshold">
+                        1800
+                    </span>
+
+                </div>
+
+
+                <div class="metric-label">
+                    Spoilage detection limit
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             MONITORING
+        ================================================== -->
+
+        <section
+            id="monitoring"
+            class="content-grid"
+        >
+
+
+            <!-- GRAPH -->
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <p class="panel-label">
+                            LIVE SENSOR DATA
+                        </p>
+
+                        <h2>
+                            Gas Concentration
+                        </h2>
+
+                    </div>
+
+
+                    <div class="live-badge">
+
+                        <span></span>
+
+                        LIVE
+
+                    </div>
+
+                </div>
+
+
+                <canvas
+                    id="gasChart"
+                ></canvas>
+
+            </div>
+
+
+
+            <!-- SYSTEM STATUS -->
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <p class="panel-label">
+                            SYSTEM STATUS
+                        </p>
+
+                        <h2>
+                            Food Monitoring
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="statusBox"
+                    class="status-box fresh-box"
+                >
+
+                    <div
+                        id="statusIcon"
+                        class="status-large-icon"
+                    >
+                        ✓
+                    </div>
+
+
+                    <div>
+
+                        <strong
+                            id="statusTitle"
+                        >
+                            Monitoring Active
+                        </strong>
+
+
+                        <p
+                            id="statusDescription"
+                        >
+                            Waiting for sensor data...
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="status-details">
+
+
+                    <div>
+
+                        <span>
+                            Device
+                        </span>
+
+                        <strong
+                            id="deviceName"
+                        >
+                            ESP32-DEV
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Sensor
+                        </span>
+
+                        <strong>
+                            MQ Gas Sensor
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Update Rate
+                        </span>
+
+                        <strong>
+                            1 second
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Last Update
+                        </span>
+
+                        <strong
+                            id="lastUpdate"
+                        >
+                            --
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             FAULT LOG
+        ================================================== -->
+
+        <section
+            id="events"
+            class="panel events-panel"
+        >
+
+
+            <div class="panel-header">
+
+                <div>
+
+                    <p class="panel-label">
+                        EVENT HISTORY
+                    </p>
+
+                    <h2>
+                        Fault & Spoilage Log
+                    </h2>
+
+                </div>
+
+
+                <div class="event-count">
+
+                    <span
+                        id="eventCount"
+                    >
+                        0
+                    </span>
+
+                    Events
+
+                </div>
+
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                EVENT
+                            </th>
+
+                            <th>
+                                GAS VALUE
+                            </th>
+
+                            <th>
+                                FOOD STATUS
+                            </th>
+
+                            <th>
+                                ALERT
+                            </th>
+
+                            <th>
+                                DEVICE
+                            </th>
+
+                            <th>
+                                TIME
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody
+                        id="faultLog"
+                    >
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="empty"
+                            >
+                                Waiting for events...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             HARDWARE INFORMATION
+        ================================================== -->
+
+        <section
+            id="system"
+            class="panel system-panel"
+        >
+
+
+            <div class="panel-header">
+
+                <div>
+
+                    <p class="panel-label">
+                        HARDWARE
+                    </p>
+
+                    <h2>
+                        System Information
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="hardware-grid">
+
+
+                <div class="hardware-item">
+
+                    <span>
+                        Controller
+                    </span>
+
+                    <strong>
+                        ESP32 Dev Module
+                    </strong>
+
+                </div>
+
+
+                <div class="hardware-item">
+
+                    <span>
+                        MQ Sensor
+                    </span>
+
+                    <strong>
+                        GPIO 34
+                    </strong>
+
+                </div>
+
+
+                <div class="hardware-item">
+
+                    <span>
+                        Buzzer
+                    </span>
+
+                    <strong>
+                        GPIO 27
+                    </strong>
+
+                </div>
+
+
+                <div class="hardware-item">
+
+                    <span>
+                        Red LED
+                    </span>
+
+                    <strong>
+                        GPIO 26
+                    </strong>
+
+                </div>
+
+
+                <div class="hardware-item">
+
+                    <span>
+                        Green LED
+                    </span>
+
+                    <strong>
+                        GPIO 25
+                    </strong>
+
+                </div>
+
+
+                <div class="hardware-item">
+
+                    <span>
+                        OLED SDA
+                    </span>
+
+                    <strong>
+                        GPIO 21
+                    </strong>
+
+                </div>
+
+
+                <div class="hardware-item">
+
+                    <span>
+                        OLED SCL
+                    </span>
+
+                    <strong>
+                        GPIO 22
+                    </strong>
+
+                </div>
+
+
+                <div class="hardware-item">
+
+                    <span>
+                        OLED Address
+                    </span>
+
+                    <strong>
+                        0x3C
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             FOOTER
+        ================================================== -->
+
+        <footer>
+
+            <div>
+
+                <strong>
+                    FoodGuard
+                </strong>
+
+                <span>
+                    • Smart Food Spoilage Detection System
+                </span>
+
+            </div>
+
+
+            <span>
+                ESP32 + Firebase IoT
+            </span>
+
+        </footer>
+
+
+    </main>
+
+
+</body>
+
+</html>
