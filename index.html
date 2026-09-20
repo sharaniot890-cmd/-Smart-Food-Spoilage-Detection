@@ -1,0 +1,414 @@
+<script type="module">
+
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    onValue
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
+
+// =====================================================
+// FIREBASE CONFIGURATION
+// =====================================================
+
+const firebaseConfig = {
+
+    apiKey:
+        "AIzaSyAVX99fg5XZqS3VpS2h5HnmgvzGmwCmy0s",
+
+    authDomain:
+        "smart-food-spoilage-dete-cc79a.firebaseapp.com",
+
+    databaseURL:
+        "https://smart-food-spoilage-dete-cc79a-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+    projectId:
+        "smart-food-spoilage-dete-cc79a",
+
+    storageBucket:
+        "smart-food-spoilage-dete-cc79a.firebasestorage.app",
+
+    messagingSenderId:
+        "517816349792",
+
+    appId:
+        "1:517816349792:web:5a3f94575b7ef910103f05"
+};
+
+
+// =====================================================
+// INITIALIZE FIREBASE
+// =====================================================
+
+const app = initializeApp(firebaseConfig);
+
+const database = getDatabase(app);
+
+
+// =====================================================
+// CURRENT DATA
+// ESP32 writes here:
+// /smartFood/current/
+// =====================================================
+
+const currentRef =
+    ref(database, "smartFood/current");
+
+
+// =====================================================
+// FAULT LOG
+// ESP32 writes here:
+// /smartFood/faultLog/
+// =====================================================
+
+const faultLogRef =
+    ref(database, "smartFood/faultLog");
+
+
+// =====================================================
+// CURRENT DATA LISTENER
+// =====================================================
+
+onValue(
+    currentRef,
+    (snapshot) => {
+
+        const data = snapshot.val();
+
+        if (!data) {
+
+            console.log(
+                "No smartFood/current data"
+            );
+
+            return;
+        }
+
+
+        console.log(
+            "Firebase Data:",
+            data
+        );
+
+
+        // Gas value
+
+        const gasValue =
+            Number(data.gasValue || 0);
+
+
+        // Food status
+
+        const foodStatus =
+            data.foodStatus || "FRESH";
+
+
+        // Alert
+
+        const alertStatus =
+            data.alert === true;
+
+
+        // ------------------------------------------------
+        // UPDATE WEB PAGE
+        // ------------------------------------------------
+
+        const gasElement =
+            document.getElementById("gasValue");
+
+        const foodElement =
+            document.getElementById("foodStatus");
+
+        const alertElement =
+            document.getElementById("alertStatus");
+
+        const thresholdElement =
+            document.getElementById("threshold");
+
+
+        if (gasElement)
+            gasElement.textContent =
+                gasValue;
+
+
+        if (foodElement)
+            foodElement.textContent =
+                foodStatus;
+
+
+        if (alertElement)
+            alertElement.textContent =
+                alertStatus ? "ON" : "OFF";
+
+
+        if (thresholdElement)
+            thresholdElement.textContent =
+                data.threshold || 1800;
+
+
+        // ------------------------------------------------
+        // STATUS BOX
+        // ------------------------------------------------
+
+        const statusBox =
+            document.getElementById("statusBox");
+
+        const statusIcon =
+            document.getElementById("statusIcon");
+
+        const statusTitle =
+            document.getElementById("statusTitle");
+
+        const statusText =
+            document.getElementById("statusText");
+
+        const alertBanner =
+            document.getElementById("alertBanner");
+
+
+        if (
+            alertStatus ||
+            foodStatus === "SPOILED"
+        ) {
+
+            if (statusBox)
+                statusBox.classList.add(
+                    "danger-box"
+                );
+
+
+            if (statusIcon)
+                statusIcon.textContent =
+                    "⚠️";
+
+
+            if (statusTitle)
+                statusTitle.textContent =
+                    "FOOD SPOILAGE DETECTED";
+
+
+            if (statusText)
+                statusText.textContent =
+                    "Abnormal gas level detected. Check the food immediately.";
+
+
+            if (alertBanner)
+                alertBanner.style.display =
+                    "block";
+
+        }
+        else {
+
+            if (statusBox)
+                statusBox.classList.remove(
+                    "danger-box"
+                );
+
+
+            if (statusIcon)
+                statusIcon.textContent =
+                    "✓";
+
+
+            if (statusTitle)
+                statusTitle.textContent =
+                    "FOOD IS FRESH";
+
+
+            if (statusText)
+                statusText.textContent =
+                    "No abnormal gas level detected.";
+
+
+            if (alertBanner)
+                alertBanner.style.display =
+                    "none";
+
+        }
+
+
+        // ------------------------------------------------
+        // CONNECTION STATUS
+        // ------------------------------------------------
+
+        const connectionStatus =
+            document.getElementById(
+                "connectionStatus"
+            );
+
+
+        if (connectionStatus) {
+
+            connectionStatus.textContent =
+                "● Firebase Connected";
+
+            connectionStatus.className =
+                "online";
+
+        }
+
+    },
+
+
+    (error) => {
+
+        console.error(
+            "Firebase error:",
+            error
+        );
+
+
+        const connectionStatus =
+            document.getElementById(
+                "connectionStatus"
+            );
+
+
+        if (connectionStatus) {
+
+            connectionStatus.textContent =
+                "● Firebase Error";
+
+            connectionStatus.className =
+                "offline";
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// FAULT LOG LISTENER
+// =====================================================
+
+onValue(
+    faultLogRef,
+    (snapshot) => {
+
+        const logs =
+            snapshot.val();
+
+
+        const faultTable =
+            document.getElementById(
+                "faultTable"
+            );
+
+
+        if (!faultTable)
+            return;
+
+
+        faultTable.innerHTML = "";
+
+
+        if (!logs) {
+
+            faultTable.innerHTML = `
+                <tr>
+                    <td colspan="5"
+                        style="text-align:center">
+                        No fault events recorded
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        // Convert Firebase object to array
+
+        const entries =
+            Object.entries(logs);
+
+
+        // Latest event first
+
+        entries.reverse();
+
+
+        entries.forEach(
+            ([key, log]) => {
+
+                const row =
+                    document.createElement("tr");
+
+
+                const isFault =
+                    log.faultType ===
+                    "FOOD_SPOILAGE_DETECTED";
+
+
+                const faultText =
+                    isFault
+                    ? "SPOILAGE DETECTED"
+                    : "STATUS RECOVERED";
+
+
+                const faultClass =
+                    isFault
+                    ? "fault"
+                    : "recovered";
+
+
+                const alertText =
+                    log.alert
+                    ? "ON"
+                    : "OFF";
+
+
+                row.innerHTML = `
+
+                    <td>
+                        ${new Date()
+                            .toLocaleString()}
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${log.gasValue ?? "--"}
+                        </strong>
+                    </td>
+
+                    <td class="${faultClass}">
+                        ${faultText}
+                    </td>
+
+                    <td>
+                        ${log.foodStatus ?? "--"}
+                    </td>
+
+                    <td>
+                        ${alertText}
+                    </td>
+
+                `;
+
+
+                faultTable.appendChild(
+                    row
+                );
+
+            }
+        );
+
+    },
+
+
+    (error) => {
+
+        console.error(
+            "Fault log error:",
+            error
+        );
+
+    }
+);
+
+</script>
